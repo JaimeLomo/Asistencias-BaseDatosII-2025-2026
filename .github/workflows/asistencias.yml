@@ -1,88 +1,22 @@
-name: Registrar Asistencia
+name: Registrar Asistencia (Pull Request)
 
 on:
   pull_request:
-    types: [opened]
 
 jobs:
-  asistencia:
+  registrar_asistencia:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Registrar asistencia
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Ejecutar script de asistencia
         env:
-          ALUMNOS_CSV: ${{ secrets.ALUMNOS_CSV }}
-          ASISTENCIA_CONFIG: ${{ secrets.ASISTENCIA_CONFIG }}
-          SHEETS_WEBHOOK: ${{ secrets.SHEETS_WEBHOOK }}
-          ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
+          ALUMNOS_CSV: '${{ secrets.ALUMNOS_CSV }}'
+          ASISTENCIA_CONFIG: '${{ secrets.ASISTENCIA_CONFIG }}'
+          SHEETS_WEBHOOK: '${{ secrets.SHEETS_WEBHOOK }}'
+          REPO: '${{ github.repository }}'
         run: |
-          python3 <<'EOF'
-        import os
-        import csv
-        import io
-        import json
-        import urllib.request
-        from datetime import datetime
-
-        FILA_INICIO = 10
-
-        actor = os.environ["ACTOR"].lower()
-        csv_raw = os.environ["ALUMNOS_CSV"]
-        config = json.loads(os.environ["ASISTENCIA_CONFIG"])
-
-        f = io.StringIO(csv_raw)
-        reader = csv.reader(f, delimiter=';')
-
-        next(reader, None)  # saltar cabecera
-
-        numero_alumno = None
-
-        for row in reader:
-            if len(row) < 4:
-                continue
-
-            nombre, numero, grupo, github = [x.strip() for x in row[:4]]
-
-            if github.lower() == actor:
-                numero_alumno = numero
-                break
-
-            if not numero_alumno:
-                print("Usuario no autorizado")
-                exit(1)
-
-            hoy = datetime.now().strftime("%Y-%m-%d")
-
-            if hoy != config["fecha"]:
-                print("Fecha no válida")
-                exit(1)
-
-            ahora = datetime.now().strftime("%H:%M")
-
-            if not (config["hora_inicio"] <= ahora <= config["hora_fin"]):
-                print("Fuera de horario permitido")
-                exit(1)
-
-            data = json.dumps({
-                "numero": numero_alumno,
-                "columna": config["columna"],
-                "filaInicio": FILA_INICIO
-            }).encode("utf-8")
-
-            req = urllib.request.Request(
-                os.environ["SHEETS_WEBHOOK"],
-                data=data,
-                headers={"Content-Type": "application/json"},
-                method="POST"
-            )
-
-            try:
-              response = urllib.request.urlopen(req)
-              print(response.read().decode())
-            except Exception as e:
-              print("Error enviando a Sheets:", e)
-              exit(1)
-
-          print("Asistencia registrada correctamente")
-
-          EOF
+          python3 .github/scripts/asistencias.py
