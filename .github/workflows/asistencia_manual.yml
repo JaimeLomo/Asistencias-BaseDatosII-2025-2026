@@ -1,17 +1,17 @@
-name: Registrar Asistencia (Pull Request)
+name: Registrar Asistencia Manual (Reprocesar PR)
 
 on:
-  pull_request:
+  workflow_dispatch
 
 jobs:
-  registrar_asistencia:
+  reprocesar_pr:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
 
-      - name: Ejecutar script de asistencia
+      - name: Ejecutar script de asistencia manual
         env:
           GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
           ALUMNOS_CSV: '${{ secrets.ALUMNOS_CSV }}'
@@ -19,4 +19,4 @@ jobs:
           SHEETS_WEBHOOK: '${{ secrets.SHEETS_WEBHOOK }}'
           REPO: '${{ github.repository }}'
         run: |
-          python3 .github/scripts/asistencias.py
+          python3 .github/scripts/asistencias_manual.py
